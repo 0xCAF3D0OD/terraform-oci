@@ -2,26 +2,14 @@ from __future__ import annotations
 from InquirerPy import inquirer
 from InquirerPy.separator import Separator
 from InquirerPy.utils import get_style
+from config import STYLE
 from typing import Any
+import oci
 
-# Codes ANSI
-GREEN = "\033[1;32m"
-YELLOW = "\033[1;33m"
-RESET = "\033[0m"
-
-STYLE = get_style({
-        "questionmark": "#e5c07b",
-        "message": "#e5c07b bold",
-        "pointer": "#61afef bold",
-        "answermark": "#98c379",
-        "answer": "#98c379 bold",
-    },
-    style_override=False) # style_override=False permet de garder les couleurs de base pour le reste
-
-def inquire_display_dict(dictionary: dict[str, str], key_word: str) -> Any:
+def inquire_display_dict(dictionary: dict[str, str], key_phrase: str) -> Any:
     # Syntaxe InquirerPy : plus besoin de créer une liste de dictionnaires
     choice = inquirer.select(
-        message=f"Which {key_word} do you need ?",
+        message=f"{key_phrase}",
         style=STYLE,  # On applique le style ici
         choices=list(dictionary.keys()),
     ).execute()  # .execute() remplace inquirer.prompt()
@@ -56,21 +44,34 @@ def inquire_display_process() -> Any:
 
     return choice
 
-def get_compartment_list(identity_client, config, parent_cmp, list_compartments) -> Any:
+def get_compartment_list(identity_client, current_id, parent_name, list_compartments) -> dict:
+    try:
+        # Appel API
+        list_compartments_response = identity_client.list_compartments(
+            compartment_id=current_id,
+            sort_by="NAME",
+            sort_order="ASC",
+            lifecycle_state="ACTIVE"
+        )
 
-    list_compartments_response = identity_client.list_compartments(
-        compartment_id=config,
-        sort_by="NAME",
-        sort_order="ASC",
-        lifecycle_state="ACTIVE"
-    )
-    for compartment in list_compartments_response.data:
-        list_compartments[compartment.name] = {
-            "cmp_parent": parent_cmp,
-            "cmp_name": compartment.name,
-            "cmp_tenancy_id": compartment.compartment_id,
-            "cmp_ocid": compartment.id,
-        }
-        get_compartment_list(identity_client, compartment.id, list_compartments[compartment.name], list_compartments)
+        for compartment in list_compartments_response.data:
+            # On crée un label unique pour éviter d'écraser des doublons (Nom + Parent)
+            display_label = f"{compartment.name} (parent: {parent_name})"
 
-    return list_compartments
+            list_compartments[display_label] = {
+                "cmp_name": compartment.name,
+                "cmp_parent": parent_name,
+                "cmp_ocid": compartment.id,
+            }
+            get_compartment_list(identity_client, compartment.id, compartment.name, list_compartments)
+
+        return list_compartments
+
+    except oci.exceptions.ServiceError as e:
+        # Erreur côté OCI (ex: 403 Forbidden si tu n'as pas accès à un sous-compartiment)
+        print(f"⚠️  Skipping sub-compartments of {parent_name}: {e.message}")
+        return list_compartments
+    except Exception as e:
+        # Erreur critique (ex: Coupure réseau)
+        print(f"❌ Critical error fetching compartments: {e}")
+        return list_compartments
