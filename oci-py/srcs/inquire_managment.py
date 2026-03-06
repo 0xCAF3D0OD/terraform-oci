@@ -1,7 +1,6 @@
 from __future__ import annotations
 from InquirerPy import inquirer
 from InquirerPy.separator import Separator
-from InquirerPy.utils import get_style
 from config import STYLE
 from typing import Any
 import oci
@@ -21,25 +20,25 @@ def inquire_display_dict(dictionary: dict[str, str], key_phrase: str) -> Any:
 def inquire_display_process() -> Any:
     list_process = [
         "1. -- exit",
-        Separator(),  # Utilisation de l'objet Separator
+        Separator(),
         "2A. -- new compartment",
-        "2B. -- delete compartment",
-        Separator(),
-        "3A. -- new policy",
-        "3B. -- delete policy",
-        Separator(),
-        "4A. -- new user",
-        "4B. -- delete user",
-        Separator(),
-        "5A. -- new group",
-        "5B. -- delete group"
+        # "2B. -- delete compartment",
+        # Separator(),
+        # "3A. -- new policy",
+        # "3B. -- delete policy",
+        # Separator(),
+        # "4A. -- new user",
+        # "4B. -- delete user",
+        # Separator(),
+        # "5A. -- new group",
+        # "5B. -- delete group"
     ]
 
     choice = inquirer.select(
         message=f"Which process do you need ?",
         style=STYLE,
         choices=list_process,
-        pointer="👉",  # Petit bonus visuel sympa
+        pointer="👉",
     ).execute()
 
     return choice

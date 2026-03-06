@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import oci
 
 from typing import Tuple, Any
@@ -23,7 +24,7 @@ def check_users_permissions(identity_client: oci.identity.IdentityClient, tenanc
     }
 
     all_passed = True
-    print(f"\n🔍 {YELLOW}Checking IAM Permissions...{RESET} {config["username"]}")
+    print(f'\n🔍 {YELLOW}Checking IAM Permissions...{RESET} {config['username']}')
     for resource, methode in permission_list.items():
         try:
             if methode(compartment_id=tenancy_id, limit=1) == 1:
@@ -83,7 +84,10 @@ def main():
     try:
         while True:
             process = inquire_display_process()
-            if process != "exit":
+            if "exit" in process:
+                print("-- Exit process... ---")
+                sys.exit(0)
+            else:
                 config_file = oci.config.from_file("~/.oci/config")
                 selected_user_credentials = inquirer_oci_users(config_file)
                 config["username"] = selected_user_credentials["user_name"]
@@ -102,11 +106,6 @@ def main():
                 elif "new group" in process:
                     policy_management(selected_user_credentials)
                 break
-            elif "exit" in process:
-                print("break process...")
-                break
-            else:
-                print("please input Y/n")
     except oci.exceptions.ConfigFileNotFound as e:
         print(f'OCI ERROR Config file not found: {e}')
     except oci.exceptions.ClientError as e:
