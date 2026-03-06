@@ -6,24 +6,7 @@
 
 The script functions as an "assembly line" where each module has a precise role:
 
-```
-graph TD
-    A[user_managment.py - MAIN] --> B(Validation IAM)
-    A --> C{Process Selection}
-    
-    C -->|2A. New Compartment| D[compartiment.py]
-    C -->|3A. New Policy| E[policy.py]
-    
-    D --> F[inquire_managment.py]
-    E --> F
-    
-    F -->|Recursion| G[(OCI Cloud: Tenancy / Compartments)]
-    
-    subgraph "Validation & Configuration"
-    B
-    H[config.py]
-    end
-```
+<img src="../img/script_fonct_schemas.png" alt="schemas" width="600">
 
 ## 2. How It Works
 
