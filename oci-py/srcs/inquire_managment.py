@@ -4,9 +4,9 @@ from InquirerPy.separator import Separator
 from config import STYLE
 from typing import Any
 import oci
+import os
 
 def inquire_display_dict(dictionary: dict[str, str], key_phrase: str) -> Any:
-    # Syntaxe InquirerPy : plus besoin de créer une liste de dictionnaires
     choice = inquirer.select(
         message=f"{key_phrase}",
         style=STYLE,  # On applique le style ici
@@ -17,8 +17,8 @@ def inquire_display_dict(dictionary: dict[str, str], key_phrase: str) -> Any:
     return choice
 
 
-def inquire_display_process() -> Any:
-    list_process = [
+def inquire_display_user_actions() -> Any:
+    user_action = [
         "1. -- exit",
         Separator(),
         "2A. -- new compartment",
@@ -37,40 +37,47 @@ def inquire_display_process() -> Any:
     choice = inquirer.select(
         message=f"Which process do you need ?",
         style=STYLE,
-        choices=list_process,
+        choices=user_action,
         pointer="👉",
     ).execute()
 
     return choice
 
-def get_compartment_list(identity_client, current_id, parent_name, list_compartments) -> dict:
-    try:
-        # Appel API
-        list_compartments_response = identity_client.list_compartments(
-            compartment_id=current_id,
-            sort_by="NAME",
-            sort_order="ASC",
-            lifecycle_state="ACTIVE"
-        )
+def inquirer_oci_domains() -> str:
+    env_vars = dict(os.environ)
+    oci_domains = {key: value for key, value in env_vars.items() if "DOMAIN" in key}
 
-        for compartment in list_compartments_response.data:
-            # On crée un label unique pour éviter d'écraser des doublons (Nom + Parent)
-            display_label = f"{compartment.name} (parent: {parent_name})"
+    answers = inquire_display_dict(oci_domains, "Which domain do you need ?")
+    domain_url = oci_domains[answers]
 
-            list_compartments[display_label] = {
-                "cmp_name": compartment.name,
-                "cmp_parent": parent_name,
-                "cmp_ocid": compartment.id,
-            }
-            get_compartment_list(identity_client, compartment.id, compartment.name, list_compartments)
+    return domain_url
 
-        return list_compartments
+def inquirer_oci_users(config_file) -> tuple[dict[str, list[Any] | Any], oci.identity_domains.IdentityDomainsClient]:
+    domain_url = inquirer_oci_domains()
 
-    except oci.exceptions.ServiceError as e:
-        # Erreur côté OCI (ex: 403 Forbidden si tu n'as pas accès à un sous-compartiment)
-        print(f"⚠️  Skipping sub-compartments of {parent_name}: {e.message}")
-        return list_compartments
-    except Exception as e:
-        # Erreur critique (ex: Coupure réseau)
-        print(f"❌ Critical error fetching compartments: {e}")
-        return list_compartments
+    identity_domains_client = oci.identity_domains.IdentityDomainsClient(config_file, domain_url)
+    response = identity_domains_client.list_users(attributes="userName,groups,ocid")
+
+    users_list = {}
+
+    for user in response.data.resources:
+        user_info = {
+            "user_name": user.user_name,
+            "user_id": user.id,
+            "user_ocid": user.ocid,
+            "groups": []
+        }
+        if hasattr(user, 'groups') and user.groups:
+            for group in user.groups:
+                group_data = {
+                    "group_name": group.display,
+                    "group_id": group.value,
+                    "ocid": group.ocid
+                }
+                user_info["groups"].append(group_data)
+        else:
+            print("  - Aucun groupe")
+        users_list[user.user_name] = user_info
+    selected_user_name = inquire_display_dict(users_list, "Which user do you want ?")
+    selected_user_credentials = users_list[selected_user_name]
+    return selected_user_credentials, identity_domains_client

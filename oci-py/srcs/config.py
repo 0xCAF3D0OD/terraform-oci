@@ -1,4 +1,6 @@
 from InquirerPy.utils import get_style
+from functools import wraps
+import oci
 
 # Codes ANSI
 GREEN = "\033[1;32m"  # Bold Green (valeurs)

@@ -1,6 +1,7 @@
 import oci
 from InquirerPy import inquirer
-from inquire_managment import get_compartment_list, inquire_display_dict
+from inquire_managment import inquire_display_dict
+from oci_helpers import get_compartment_list
 
 config = {
     "oci_config": {},

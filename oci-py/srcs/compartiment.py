@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+import sys
+
 import oci
 import datetime
 from dotenv import load_dotenv
 from InquirerPy import inquirer
 from config import config, GREEN, YELLOW, RED, RESET, STYLE
-from inquire_managment import get_compartment_list
 from inquire_managment import inquire_display_dict
+from oci_helpers import get_compartment_list
 
 load_dotenv()
 
 config_oci = config
+EXIT_OPTION = "exit"
 
 def define_tags() -> tuple[dict, dict]:
     cmp_tag, project_tag, env_tag = config_oci["compartment_name"].split("-")
@@ -140,7 +143,13 @@ def compartment_management(identity_client, config_file) -> None:
         if not list_compartments:
             raise ValueError(f"{RED}compartment not created or not found{RESET}")
 
-        selected_compartment_name = inquire_display_dict(list_compartments, "Which compartment do you need ?")
+        list_compartments.update({EXIT_OPTION: EXIT_OPTION})
+        selected_compartment_name = inquire_display_dict(
+            list_compartments,
+            "Which compartment do you need ?")
+        if selected_compartment_name == EXIT_OPTION:
+            print(f"{RED}exit program ... {RESET}")
+            sys.exit(0)
         selected_compartment_credential = list_compartments[selected_compartment_name]
         config_file["parent_compartment_id"] = selected_compartment_credential["cmp_ocid"]
         create_new_compartment(identity_client)
