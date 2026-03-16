@@ -20,6 +20,6 @@ else
     OUTPUT_NAME="oci-resource-ctl-$ARCH"
 fi
 
-mv srcs/dist/oci-resource-ctl "srcs/dist/$OUTPUT_NAME"
+mv dist/oci-resource-ctl "dist/$OUTPUT_NAME"
 
-echo "✅ Build complete: srcs/dist/$OUTPUT_NAME"
+echo "✅ Build complete: dist/$OUTPUT_NAME"
