@@ -6,7 +6,7 @@ set -e  # Exit on error
 cd oci-python/srcs
 
 echo "🔨 Building for $(uname -m)..."
-pip install oci inquirerpy python-dotenv pyinstaller
+pip install dotenv python-dotenv inquirerpy inquirer oci pyinstaller
 
 pyinstaller oci-resource-ctl.spec --clean
 
