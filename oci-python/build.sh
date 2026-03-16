@@ -3,8 +3,6 @@
 
 set -e  # Exit on error
 
-cd oci-python/srcs
-
 echo "🔨 Building for $(uname -m)..."
 pip install dotenv python-dotenv inquirerpy inquirer oci pyinstaller
 
