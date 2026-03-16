@@ -14,20 +14,21 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+            python-version: "3.11"
           
       - name: Build with script
         if: runner.os != 'windows'
         run: |
-          chmod +x build.sh
-          ./build.sh
+            cd oci-python
+            chmod +x build.sh
+            ./build.sh
 
-      - name: Build
+      - name: Build without script
         if: runner.os == 'windows'
         run: |
-          cd oci-python/srcs/
-          pip install dotenv python-dotenv inquirerpy inquirer oci pyinstaller
-          pyinstaller oci-resource-ctl.spec --clean
+            cd oci-python/srcs/
+            pip install dotenv python-dotenv inquirerpy inquirer oci pyinstaller
+            pyinstaller oci-resource-ctl.spec --clean
           
       - name: Upload distributions
         uses: actions/upload-artifact@v4
