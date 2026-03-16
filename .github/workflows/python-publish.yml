@@ -1,0 +1,36 @@
+name: Build Package
+
+on: [push]
+    
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}  
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          
+      - name: Build with script
+        if: runner.os != 'windows'
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Build
+        if: runner.os == 'windows'
+        run: |
+          cd oci-python/srcs/
+          pip install dotenv python-dotenv inquirerpy inquirer oci pyinstaller
+          pyinstaller oci-resource-ctl.spec --clean
+          
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: oci-resource-ctl-${{ runner.os }}-${{ runner.arch }}
+          path: oci-python/srcs/dist
