@@ -1,0 +1,4 @@
+oci
+InquirerPy
+python-dotenv
+dotenv

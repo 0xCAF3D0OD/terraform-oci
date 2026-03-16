@@ -62,7 +62,6 @@ abandoned/
 .cache/
 build/
 data/
-dist/
 __pycache__/
 env/
 docs/warnings.txt

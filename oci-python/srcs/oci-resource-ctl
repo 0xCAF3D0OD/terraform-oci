@@ -1,0 +1,118 @@
+#!/Users/dino/.venv/bin/python
+
+from __future__ import annotations
+
+import sys
+import oci
+
+from config import config, YELLOW, RESET
+from dotenv import load_dotenv
+from compartiment import compartment_management
+from policy import policy_management
+from inquire_managment import (
+    inquire_display_user_actions,
+    inquirer_oci_users
+)
+
+load_dotenv()
+
+def validate_permissions(resource, method):
+    try:
+        response = method()
+        print(f"✅ Permissions verified: User can list {resource}.")
+        return True, response
+    except oci.exceptions.ServiceError as e:
+        if e.status == 403:
+            print(f"❌ {resource} Access Denied: User does not have permissions.")
+        else:
+            print(f"⚠️ OCI Service Error: {e.message} for {resource}")
+        return False, None
+    except Exception as e:
+        print(f"❌ Connection error for {resource}: {e}")
+        return False, None
+
+
+def check_users_permissions(identity_client, identity_domains_client, tenancy_id) -> tuple[bool, dict]:
+    print(f'\n🔍 {YELLOW}Checking IAM Permissions...{RESET} {config["username"]}')
+
+    # 1. Test des compartiments (on garde l'ID racine par défaut)
+    target_id = tenancy_id
+    c_status, c_response = validate_permissions(
+        "Compartments",
+        lambda: identity_client.list_compartments(compartment_id=tenancy_id, limit=1))
+
+    # On met à jour l'ID cible seulement si on a reçu des données
+    if c_status and c_response and c_response.data:
+        target_id = c_response.data[0].id
+
+    # 2. Exécution des autres tests
+    p_status, p_response = validate_permissions(
+        "Policies", lambda: identity_client.list_policies(compartment_id=target_id, limit=1))
+
+    g_status, g_response = validate_permissions(
+        "Groups", lambda: identity_domains_client.list_groups())
+
+    u_status, u_response = validate_permissions(
+        "Users", lambda: identity_domains_client.list_users(limit=1))
+
+    # 3. Construction sécurisée du dictionnaire de réponses
+    # On utilise .data seulement si l'objet existe, sinon on met une liste vide []
+    responses = {
+        "compartments": {"status": c_status, "data": c_response.data if c_status and c_response else []},
+        "policies": {"status": p_status, "data": p_response.data if p_status and p_response else []},
+        "groups": {"status": g_status, "data": g_response.data if g_status and g_response else []},
+        "users": {"status": u_status, "data": u_response.data if u_status and u_response else []}
+    }
+
+    all_passed = all([c_status, p_status, g_status, u_status])
+    return all_passed, responses
+
+def main():
+    try:
+        while True:
+            user_action = inquire_display_user_actions()
+            if "exit" in user_action:
+                print("-- Exit process... ---")
+                sys.exit(0)
+            else:
+                # Config file content retrieval
+                config_file = oci.config.from_file("~/.oci/config")
+
+                # Oci user selection in terminal
+                selected_user_credentials, identity_domains_client = inquirer_oci_users(config_file)
+                config["username"] = selected_user_credentials["user_name"]
+
+                # User credentials in config file retrieval
+                config["oci_config"] = oci.config.from_file(
+                    "~/.oci/config",
+                    selected_user_credentials["user_name"]
+                )
+                # Initialize Identity client to handle OCI API calls for the selected user.
+                identity_client = oci.identity.IdentityClient(config["oci_config"])
+
+                # Did the user have permission for doing the further commands
+                all_status, responses = check_users_permissions(
+                    identity_client,
+                    identity_domains_client,
+                    config["oci_config"]["tenancy"]
+                )
+                if "new compartment" in user_action and responses["compartments"]["status"] == True:
+                    compartment_management(identity_client, config)
+                # elif "new group" in user_action:
+                #     policy_management(identity_client)
+                # elif "new user" in user_action:
+                #     policy_management(identity_client)
+                elif "new policy" in user_action and responses["policies"]["status"] == True:
+                    policy_management(identity_client, responses["groups"]["data"].resources, config)
+                break
+    except oci.exceptions.ConfigFileNotFound as e:
+        print(f'OCI ERROR Config file not found: {e}')
+    except oci.exceptions.ClientError as e:
+        print(f"OCI ERROR client error: {e}")
+    except oci.exceptions.ConnectTimeout as e:
+        print(f"OCI ERROR timeout: {e}")
+    except Exception as e:
+        print(f"Error in main methode: {e}")
+
+if __name__ == "__main__":
+    main()
