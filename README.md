@@ -1,6 +1,29 @@
-# SETUP Terraform + Oracle Cloud Infrastructure
+# Terraform - Oracle Cloud Infrastructure
 
+## Contenu du Repository
+
+Ce repertoire contient la configuration pour la mise en place d'une infrastructure Oracle Cloud Infrastructure (OCI) sécurisée avec Terraform, suivant le principe du **Moindre Privilège**.
+
+### Structure du Projet
+
+- **`terraform/`** - Configuration Terraform IaC pour OCI
+  - Compartiments et organisation des ressources
+
+- **`oci-python/`** - Outils Python pour la gestion d'OCI
+  - CLI interactif pour la manipulation de la structure OCI (compartiment, utilisateur, politiques, etc.)
+  - Utilisation de la librairie `inquirer` pour l'interface utilisateur
+  - Script d'aide pour automatiser les tâches courantes
+
+- **`.github/workflows/`** - Pipelines CI/CD (GitHub Actions)
+  - Automatisation des builds et deployments du script oci-python
+
+- **`img/`** - Assets et schémas architecturaux
+  
 ## Philosophie et Architecture de Sécurité
+
+### C'est quoi le principe du "Moindre Privilège" ?
+
+
 
 ### L'Objectif : Le Principe du "Moindre Privilège"
 
