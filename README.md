@@ -2,7 +2,8 @@
 
 ## Contenu du Repository
 
-Ce repertoire contient la configuration pour la mise en place d'une infrastructure Oracle Cloud Infrastructure (OCI) sécurisée avec Terraform, suivant le principe du **Moindre Privilège**.
+Ce repertoire contient la configuration pour la mise en place d'une infrastructure Oracle Cloud Infrastructure (OCI) 
+sécurisée avec Terraform, suivant le principe du **Moindre Privilège**.
 
 ### Structure du Projet
 
@@ -23,47 +24,58 @@ Ce repertoire contient la configuration pour la mise en place d'une infrastructu
 
 ### C'est quoi le principe du "Moindre Privilège" ?
 
+![what_is_principle_of_least_privilege.png](img/what_is_principle_of_least_privilege.png)
 
+Le principe du moindre privilège implique de n'accorder aux utilisateurs que l'accès proche du minimum dont ils ont besoin pour 
+leur tâche spécifique. Cette stratégie permet de limiter les conséquences d'une potentielle compromission de compte.
 
-### L'Objectif : Le Principe du "Moindre Privilège"
+Le principe du moindre privilège adopte une approche plus granulaire du contrôle d'accès. 
+Chaque utilisateur peut avoir un niveau d'accès différent, en fonction des tâches qu'il doit accomplir.
 
-Le but de cette configuration est de passer d'un système où on fait tout avec un compte "Dieu" (Admin) à un système cloisonné, sécurisé où les utilisateurs n'ont que les accès nécessaires à leur travail.
+Le but est donc de passer d'un système qui utilise un seul compte (Admin) à un système cloisonné, sécurisé.
+
+### Pourquoi on utilise ce principe ?
+
+Le principe du moindre privilège est l'un des concepts fondamentaux de la sécurité Zero Trust. Un réseau de confiance 
+zéro établit les connexions une par une et les réauthentifie régulièrement. 
+Il ne donne aux utilisateurs et aux dispositifs que l'accès dont ils ont absolument besoin, 
+ce qui permet de mieux contenir les menaces potentielles à l'intérieur du réseau.
 
 **Problème initial :**
-- On utilise son compte Admin pour tout
+- On utilise un compte Admin pour tout
 - **Risque :** Une erreur de frappe ou une clé volée = toute la Tenancy (compte Oracle) compromise
 
-**Solution mise en place : Gouvernance Cloud**
+**En gros**: Un grand pouvoir implique de grandes responsabilités, plus tu as du pouvoir plus ton erreur à d'impact sur l'infra.
 
-| Bénéfice | Explication |
-|----------|-------------|
-| **Isolation des risques** | Si l'utilisateur X fait une erreur, il ne peut pas supprimer les ressources d'Administrateur |
-| **Droit à l'erreur** | Le compartiment Dev est un "bac à sable" pour tester sans polluer le compte principal |
-| **Professionnalisme** | Structure plus pro: Utilisateur → Groupe → Policy → Compartiment |
 
----
+### C'est quoi la philosophie du Zero Trust ?
 
-### Ce qui as été construit (Le "Quoi")
-
-| Objet | Emplacement dans la console | Son rôle actuel |
-|-------|----------------------------|-----------------|
-| **X (User)** | Identity > Domains > Users | son identité de travail |
-| **DevOps (Group)** | Identity > Domains > Groups | Le "porte-clés" (X est dedans) |
-| **devops-policy** | Identity > Policies | L'autorisation qui nomme le groupe DevOps |
-| **compartiment_Dev** | Identity > Compartments | La zone où le groupe a le droit d'agir |
+La sécurité Zero Trust est une philosophie de sécurité émergente qui part du principe que tout utilisateur ou dispositif
+peut présenter une menace. Elle contraste avec les anciens modèles de sécurité qui considèrent que toutes les connexions 
+provenant de l'intérieur d'un réseau interne sont dignes de confiance.
 
 ---
 
-### La Chaîne de Confiance (4 maillons)
+### La Chaîne de Confiance (4 maillons) (Le "Quoi")
+
+| Objet              | Emplacement dans la console | Son rôle actuel |
+|--------------------|----------------------------|-----------------|
+| **X (User)**       | Identity > Domains > Users | son identité de travail |
+| **X (Group)**      | Identity > Domains > Groups | Le "porte-clés" (X est dedans) |
+| **X policy**       | Identity > Policies | L'autorisation qui nomme le groupe DevOps |
+| **X compartiment** | Identity > Compartments | La zone où le groupe a le droit d'agir |
+
+---
+
 ```
 1. Utilisateur (X@dev.com)
    ↓ Compte vide, sans aucun droit par défaut
    
-2. Groupe (DevOps)
+2. Groupe (X)
    ↓ Un "contenant" qui porte les droits (scalable : facile d'ajouter 10 nouveaux employés)
    
-3. Policy (devops-policy)
-   ↓ Le contrat juridique : "Le groupe DevOps a le droit de gérer les serveurs, mais rien d'autre"
+3. Policy (X policy)
+   ↓ Le contrat juridique : "Le groupe X a le droit de gérer les serveurs, mais rien d'autre"
    
 4. Profil CLI ([X])
    ↓ Identité numérique (clés .pem) pour prouver à Oracle qui tu es
@@ -73,21 +85,21 @@ Le but de cette configuration est de passer d'un système où on fait tout avec 
 
 ### Les 3 Piliers de la Sécurité
 
-#### La Cloison : Le Compartiment (compartiment_Dev)
+#### La Cloison : Le Compartiment
 
 **Concept :** On arrête de tout mettre dans la "pièce principale" (Root)
 
-- **Action :** Création d'un espace nommé `compartiment_Dev`
-- **Métaphore :** Une pièce sécurisée dans une maison dont on as donné les clés à quelqu'un d'autre
+- **Action :** Création d'un espace nommé `X...`
+- **Métaphore :** Une pièce sécurisée dans une maison dont on a donné les clés à quelqu'un d'autre
 - **Bénéfice :** Isolation complète des ressources de test/dev
 
-#### Le Verrou : La Policy (devops-scoped-policy)
+#### Le Verrou : La Policy
 
 **Concept :** Le document juridique qui définit les droits
 
-- **Action :** Statement ultra-précis
+- **Action :** Statement précis
 ```
-  Allow group DevOps to manage instance-family in compartment compartiment_Dev
+  Allow group X to manage instance-family in compartment compartiment_Dev
 ```
 - **Mot-clé magique :** `in compartment` = la limite de sécurité
 - **Résultat :** En dehors de ce compartiment, le groupe DevOps n'existe pas pour Oracle
@@ -102,7 +114,7 @@ Le but de cette configuration est de passer d'un système où on fait tout avec 
 
 ---
 
-### Comment ca été fait (Le "Comment")
+### Comment ca été fait ? (Le "Comment")
 
 #### 1. Sécurisation de l'accès
 
@@ -128,7 +140,7 @@ oci iam group add-user --user-id <X_OCID> --group-id <DEVOPS_GROUP_OCID>
 
 **Liaison Groupe → Ressources :**
 ```
-Allow group DevOps to manage instance-family in compartment compartiment_Dev
+Allow group X to manage instance-family in compartment X
 ```
 
 ---
@@ -155,12 +167,12 @@ oci iam user create --name "nouveau-dev" --profile ADMIN
 
 ### État Final de son Infrastructure
 
-| Élément | État | Rôle |
-|---------|------|------|
+| Élément               | État | Rôle |
+|-----------------------|------|------|
 | **Utilisateur Admin** | Caché derrière `--profile ADMIN` | Le propriétaire, ne touche à rien au quotidien |
-| **Utilisateur X** | Profil par défaut | Le technicien qui travaille dans son compartiment |
-| **Compartiment Dev** | Actif | Zone de test isolée et sécurisée |
-| **Policy** | Restrictive | Lie X à son compartiment uniquement |
+| **Utilisateur X**     | Profil par défaut | Le technicien qui travaille dans son compartiment |
+| **Compartiment X**    | Actif | Zone de test isolée et sécurisée |
+| **Policy**            | Restrictive | Lie X à son compartiment uniquement |
 
 ---
 
@@ -194,9 +206,9 @@ key_file=~/.oci/oci_api_key.pem
 
 ## Phase 2 : Organisation des ressources Oracle Cloud
 
-### 4. Création du compartiment "compartiment_Dev"
+### 4. Création du compartiment "X"
 - But : Organiser les ressources par environnement
-- Commande : `oci iam compartment create --name "compartiment_Dev" --description "Compartiment de développement" --compartment-id <TENANCY_OCID>`
+- Commande : `oci iam compartment create --name "X" --description "Compartiment de développement" --compartment-id <TENANCY_OCID>`
 - OCID obtenu : `<COMPARTMENT_OCID>`
 
 ### 5. Création de l'utilisateur DevOps "X@dev.com"
@@ -218,15 +230,15 @@ key_file=path/to/.oci/pem_file
 
 ## Phase 3 : Configuration IAM (Identity & Access Management)
 
-### 6. Compte ADMIN crée le groupe "DevOps"
+### 6. Compte ADMIN crée le groupe "X"
 ```bash
 oci iam group create \
   --name DevOps \
-  --description "Groupe pour l'équipe DevOps" \
+  --description "Groupe pour l'équipe X" \
   --profile DEFAULT
 ```
 
-### 7. Compte ADMIN ajoute l'utilisateur X au groupe DevOps
+### 7. Compte ADMIN ajoute l'utilisateur X au groupe X
 ```bash
 oci iam group add-user \
   --user-id ocid1.user.oc1..xxxxxxxxxxxxxx \
@@ -241,8 +253,8 @@ oci iam policy create \
   --name "devops-compartment-dev-policy" \
   --description "Permissions pour le groupe DevOps" \
   --statements '[
-    "Allow group DevOps to manage virtual-network-family in compartment id <COMPARTMENT_OCID>",
-    "Allow group DevOps to manage instance-family in compartment id <COMPARTMENT_OCID>"
+    "Allow group X to manage virtual-network-family in compartment id <COMPARTMENT_OCID>",
+    "Allow group X to manage instance-family in compartment id <COMPARTMENT_OCID>"
   ]' \
   --profile DEFAULT
 ```
