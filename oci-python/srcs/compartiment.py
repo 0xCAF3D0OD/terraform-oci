@@ -3,49 +3,46 @@ from __future__ import annotations
 import sys
 
 import oci
-import datetime
 from dotenv import load_dotenv
 from InquirerPy import inquirer
-from config import config, GREEN, YELLOW, RED, RESET, STYLE
+from classes import ConfigState
+from config import GREEN, YELLOW, RED, RESET, STYLE
+from config import define_tags
 from inquire_managment import inquire_display_dict
 from oci_helpers import get_compartment_list
 
 load_dotenv()
 
-config_oci = config
 EXIT_OPTION = "exit"
 
-def define_tags() -> tuple[dict, dict]:
-    cmp_tag, project_tag, env_tag = config_oci["compartment_name"].split("-")
-    freeform_tags = {
-        'env': env_tag,
-        'team': 'devops',
-        'project': project_tag,
-        'created_by': config_oci["username"],
-        'backup-required': "false" if env_tag == "dev" else "true"
-    }
-
-    defined_tags = {
-        'Oracle-Tags': {
-            'CreatedBy': config_oci["username"],
-            'CreatedOn': datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-        }
-    }
-
-    return freeform_tags, defined_tags
-
-def resume_compartment_data(description: str, freeform_tags, defined_tags) -> None:
+def resume_compartment_data(
+        new_compartment_name: str,
+        description: str,
+        freeform_tags,
+        defined_tags
+) -> None:
     print(f"\n{YELLOW}=== Compartment Configuration ==={RESET}\n"
-          f"{YELLOW}Parent compartment:{RESET} {GREEN}{config_oci['parent_compartment_name']}{RESET} → {GREEN}{config_oci['parent_compartment_id']}{RESET}\n"
-          f"{YELLOW}Compartment name:{RESET} {GREEN}{config_oci['compartment_name']}{RESET}\n"
+          f"{YELLOW}Parent compartment:{RESET} {GREEN}{ConfigState.target_compartment_credentials["cmp_name"]}{RESET} → "
+          f"{GREEN}{ConfigState.target_compartment_credentials["cmp_ocid"]}{RESET}\n"
+          f"{YELLOW}Compartment name:{RESET} {GREEN}{new_compartment_name}{RESET}\n"
           f"{YELLOW}Description:{RESET} {GREEN}{description}{RESET}\n"
           f"{YELLOW}Freeform tags:{RESET} {GREEN}{freeform_tags}{RESET}\n"
           f"{YELLOW}Defined tags:{RESET} {GREEN}{defined_tags}{RESET}\n"
           f"{YELLOW}{'='*35}{RESET}\n")
 
-def compartment_requirements() -> tuple[str, str]:
+def validate_compartment_name(new_compartment_name: str) -> str:
+    while new_compartment_name == ConfigState.target_compartment_credentials["cmp_name"]:
+        print(f"❌ '{new_compartment_name}' is the same as parent. Please use a different name.")
+        new_compartment_name = inquirer.text(
+            message="Enter a NEW compartment name:",
+            style=STYLE
+        ).execute()
+
+    return new_compartment_name
+
+def compartment_requirements() -> tuple[str | None, str]:
     # Name validation
-    compartment_name = inquirer.text(
+    new_compartment_name = inquirer.text(
         message="Enter the compartment name:",
         style=STYLE,
         validate=lambda result: len(result.split("-")) == 3,
@@ -53,29 +50,29 @@ def compartment_requirements() -> tuple[str, str]:
     ).execute()
 
     # Parent compartment verification (retry loop)
-    while compartment_name == config_oci["parent_compartment_name"]:
-        print(f"❌ '{compartment_name}' is the same as parent. Please use a different name.")
-        compartment_name = inquirer.text(
-            message="Enter a NEW compartment name:",
-            style=STYLE
-        ).execute()
+    new_compartment_name = validate_compartment_name(new_compartment_name)
 
     # Description Validation
-    compartment_description = inquirer.text(
+    new_compartment_description = inquirer.text(
         message="Enter the compartment description:",
         style=STYLE,
         validate=lambda result: 0 < len(result) <= 400,
         invalid_message="Description must be between 1 and 400 chars"
     ).execute()
 
-    return compartment_name, compartment_description
+    return new_compartment_name, new_compartment_description
 
 def create_new_compartment(identity_client: oci.identity.IdentityClient) -> None:
     try:
-        config_oci["compartment_name"], description = compartment_requirements()
-        freeform_tags, defined_tags = define_tags()
+        new_compartment_name, description = compartment_requirements()
+        freeform_tags, defined_tags = define_tags(new_compartment_name)
         while True:
-            resume_compartment_data(description, freeform_tags, defined_tags)
+            resume_compartment_data(
+                new_compartment_name,
+                description,
+                freeform_tags,
+                defined_tags
+            )
             choice = inquirer.text(
                 message="do you want to create this new compartment: Y/n",
                 style=STYLE,
@@ -85,8 +82,8 @@ def create_new_compartment(identity_client: oci.identity.IdentityClient) -> None
             if choice == "Y":
                 identity_client.create_compartment(
                     create_compartment_details=oci.identity.models.CreateCompartmentDetails(
-                        compartment_id=config_oci["parent_compartment_id"],
-                        name=config_oci["compartment_name"],
+                        compartment_id=ConfigState.target_compartment_credentials["cmp_ocid"],
+                        name=new_compartment_name,
                         description=description,
                         freeform_tags=freeform_tags,
                         defined_tags=defined_tags
@@ -102,8 +99,8 @@ def create_new_compartment(identity_client: oci.identity.IdentityClient) -> None
                     invalid_message="Please fill: name or description if want to exit touch enter",
                 ).execute()
                 if field == "name":
-                    config_oci['compartment_name'] = input("New name: ").strip()
-                    freeform_tags, defined_tags = define_tags()
+                    new_compartment_name = input("New name: ").strip()
+                    freeform_tags, defined_tags = define_tags(new_compartment_name)
                 elif field == "description":
                     description = input(f"\n{YELLOW}New description: {RESET}").strip()
                 else:
@@ -120,12 +117,12 @@ def create_new_compartment(identity_client: oci.identity.IdentityClient) -> None
     except Exception as e:
         print(f"Error in create_compartment: {e}")
 
-def compartment_selection(identity_client: oci.identity.IdentityClient, config_file: dict) -> None:
+def compartment_selection(identity_client: oci.identity.IdentityClient) -> None:
     all_compartments = {}
 
     list_compartments = get_compartment_list(
         identity_client,
-        config_file["oci_config"]["tenancy"],
+        ConfigState.config_file_entries["tenancy"],
         "dk_company",
         all_compartments
     )
@@ -140,8 +137,7 @@ def compartment_selection(identity_client: oci.identity.IdentityClient, config_f
         print(f"{RED}exit program ... {RESET}")
         sys.exit(0)
     selected_compartment_credential = list_compartments[selected_compartment_name]
-    config_file["parent_compartment_id"] = selected_compartment_credential["cmp_ocid"]
-    config_file["compartment_id"] = selected_compartment_credential["cmp_ocid"]
+    ConfigState.target_compartment_credentials = selected_compartment_credential
 
 #{
 #   'user_name': 'vincentRevole@admindev.com',

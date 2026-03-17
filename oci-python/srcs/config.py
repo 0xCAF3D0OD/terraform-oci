@@ -1,4 +1,7 @@
 from InquirerPy.utils import get_style
+from InquirerPy.base.control import Choice
+from classes import ConfigState
+import datetime
 from functools import wraps
 import oci
 
@@ -27,12 +30,59 @@ STYLE = get_style({
 #   'region': 'us-ashburn-1',
 #   'key_file': '~/.oci/vrevol_keys/oci_api_key.pem'
 # }
-config = {
-    "oci_config": {},
-    "username": "",
-    "tenancy_ocid": None,
-    "compartment_id": None,
-    "compartment_name": "",
-    "parent_compartment_id": None,
-    "parent_compartment_name": ""
-}
+
+def define_tags(new_compartment_name: str) -> tuple[dict, dict]:
+    cmp_tag, project_tag, env_tag = new_compartment_name.split("-")
+    freeform_tags = {
+        'env': env_tag,
+        'team': 'devops',
+        'project': project_tag,
+        'created_by': ConfigState.target_user_credentials["user_name"],
+        'backup-required': "false" if env_tag == "dev" else "true"
+    }
+
+    defined_tags = {
+        'Oracle-Tags': {
+            'CreatedBy': ConfigState.target_user_credentials["user_name"],
+            'CreatedOn': datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+        }
+    }
+
+    return freeform_tags, defined_tags
+
+# Allow <subject> to <verb> <resource-type> in <location> where <conditions>
+
+POLICY_SUBJECT = [Choice(value=None, name="Exit"), "group"]
+POLICY_VERB = [Choice(value=None, name="Exit"), "inspect", "read", "use", "manage"]
+POLICY_LOCA = [Choice(value=None, name="Exit"), "compartment id", "tenancy id"]
+POLICY_RES_TYPE = [
+    Choice(value=None, name="Exit"),
+    "all-resources",
+    "cluster-family",
+    "compute-management-family",
+    "data-catalog-family",
+    "data-science-family",
+    "autonomous-database-family",
+    "database-family",
+    "dns",
+    "email-family",
+    "file-family",
+    "instance-agent-command-family",
+    "instance-agent-family",
+    "instance-family",
+    "key-family",
+    "load-balancers",
+    "network-security-group",
+    "object-family",
+    "optimizer-api-family",
+    "osms-family",
+    "osmh-family",
+    "secret-family",
+    "virtual-network-family",
+    "recovery-service-family",
+    "volume-family",
+    "network-load-balancers",
+    "leaf-certificate-family",
+    "certificate-authority-family",
+    "nosql-family"
+]

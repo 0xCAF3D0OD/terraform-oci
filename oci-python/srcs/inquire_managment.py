@@ -1,6 +1,8 @@
 from __future__ import annotations
 from InquirerPy import inquirer
+from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
+from classes import ConfigState
 from config import STYLE
 from typing import Any
 import oci
@@ -19,7 +21,7 @@ def inquire_display_dict(dictionary: dict[str, str], key_phrase: str) -> Any:
 
 def inquire_display_user_actions() -> Any:
     user_action = [
-        "1. -- exit",
+        Choice(value=None, name="1. -- exit"),
         Separator(),
         "2A. -- new compartment",
         # "2B. -- delete compartment",
@@ -38,22 +40,30 @@ def inquire_display_user_actions() -> Any:
         message=f"Which process do you need ?",
         style=STYLE,
         choices=user_action,
-        pointer="👉",
+        default=None
     ).execute()
 
     return choice
 
-def inquirer_oci_domains() -> str:
+def inquirer_oci_domains(config_file) -> str:
     env_vars = dict(os.environ)
     oci_domains = {key: value for key, value in env_vars.items() if "DOMAIN" in key}
 
     answers = inquire_display_dict(oci_domains, "Which domain do you need ?")
-    domain_url = oci_domains[answers]
+
+    identity_client = oci.identity.IdentityClient(config_file)
+    get_domain_response = identity_client.get_domain(
+        domain_id=oci_domains[answers]
+    )
+    domain_url = get_domain_response.data.url
+
+
+    ConfigState.domain_data = get_domain_response.data
 
     return domain_url
 
 def inquirer_oci_users(config_file) -> tuple[dict[str, list[Any] | Any], oci.identity_domains.IdentityDomainsClient]:
-    domain_url = inquirer_oci_domains()
+    domain_url = inquirer_oci_domains(config_file)
 
     identity_domains_client = oci.identity_domains.IdentityDomainsClient(config_file, domain_url)
     response = identity_domains_client.list_users(attributes="userName,groups,ocid")
@@ -76,8 +86,9 @@ def inquirer_oci_users(config_file) -> tuple[dict[str, list[Any] | Any], oci.ide
                 }
                 user_info["groups"].append(group_data)
         else:
-            print("  - Aucun groupe")
+            print("  - no groups")
         users_list[user.user_name] = user_info
     selected_user_name = inquire_display_dict(users_list, "Which user do you want ?")
+    ConfigState.target_user_credentials = users_list[selected_user_name]
     selected_user_credentials = users_list[selected_user_name]
     return selected_user_credentials, identity_domains_client

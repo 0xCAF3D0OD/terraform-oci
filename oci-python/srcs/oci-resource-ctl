@@ -5,7 +5,12 @@ from __future__ import annotations
 import sys
 import oci
 
-from config import config, YELLOW, RESET
+from InquirerPy import inquirer
+from InquirerPy.base.control import Choice
+from InquirerPy.separator import Separator
+
+from classes import ConfigState
+from config import YELLOW, RESET
 from dotenv import load_dotenv
 from compartiment import compartment_management
 from policy import policy_management
@@ -33,7 +38,7 @@ def validate_permissions(resource, method):
 
 
 def check_users_permissions(identity_client, identity_domains_client, tenancy_id) -> tuple[bool, dict]:
-    print(f'\n🔍 {YELLOW}Checking IAM Permissions...{RESET} {config["username"]}')
+    print(f'\n🔍 {YELLOW}Checking IAM Permissions...{RESET} {ConfigState.target_user_credentials["user_name"]}')
 
     # 1. Test des compartiments (on garde l'ID racine par défaut)
     target_id = tenancy_id
@@ -71,7 +76,7 @@ def main():
     try:
         while True:
             user_action = inquire_display_user_actions()
-            if "exit" in user_action:
+            if len(user_action) == 0:
                 print("-- Exit process... ---")
                 sys.exit(0)
             else:
@@ -80,30 +85,29 @@ def main():
 
                 # Oci user selection in terminal
                 selected_user_credentials, identity_domains_client = inquirer_oci_users(config_file)
-                config["username"] = selected_user_credentials["user_name"]
 
                 # User credentials in config file retrieval
-                config["oci_config"] = oci.config.from_file(
+                ConfigState.config_file_entries = oci.config.from_file(
                     "~/.oci/config",
                     selected_user_credentials["user_name"]
                 )
                 # Initialize Identity client to handle OCI API calls for the selected user.
-                identity_client = oci.identity.IdentityClient(config["oci_config"])
+                identity_client = oci.identity.IdentityClient(ConfigState.config_file_entries)
 
                 # Did the user have permission for doing the further commands
                 all_status, responses = check_users_permissions(
                     identity_client,
                     identity_domains_client,
-                    config["oci_config"]["tenancy"]
+                    ConfigState.config_file_entries["tenancy"]
                 )
                 if "new compartment" in user_action and responses["compartments"]["status"] == True:
-                    compartment_management(identity_client, config)
+                    compartment_management(identity_client)
                 # elif "new group" in user_action:
                 #     policy_management(identity_client)
                 # elif "new user" in user_action:
                 #     policy_management(identity_client)
                 elif "new policy" in user_action and responses["policies"]["status"] == True:
-                    policy_management(identity_client, responses["groups"]["data"].resources, config)
+                    policy_management(identity_client, responses["groups"]["data"].resources)
                 break
     except oci.exceptions.ConfigFileNotFound as e:
         print(f'OCI ERROR Config file not found: {e}')
@@ -113,6 +117,37 @@ def main():
         print(f"OCI ERROR timeout: {e}")
     except Exception as e:
         print(f"Error in main methode: {e}")
+
+
+# def main():
+#     keybindings = {
+#         "toggle-all": [{"key": ["c-a", "space"]}],
+#     }
+#
+#     action = inquirer.select(
+#         message="Select an action:",
+#         choices=[
+#             "Upload",
+#             "Download",
+#             Choice(value=None, name="Exit"),
+#         ],
+#         default=None,
+#     ).execute()
+#
+#     if action:
+#         region = inquirer.checkbox(  # ✅ Utilise checkbox au lieu de select
+#             message="Select regions:",
+#             choices=[
+#                 Choice("ap-southeast-2", name="Sydney"),
+#                 Choice("ap-southeast-1", name="Singapore"),
+#                 Separator(),
+#                 "us-east-1",
+#                 "us-east-2",
+#             ],
+#             keybindings=keybindings,
+#             transformer=lambda result: f"{len(result)} region{'s' if len(result) > 1 else ''} selected",
+#         ).execute()
+
 
 if __name__ == "__main__":
     main()
