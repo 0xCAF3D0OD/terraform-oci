@@ -73,3 +73,7 @@ tests/temp
 .vscode/
 .wercker/
 temp
+oci-python/srcs/dist/
+*.exe
+*.o
+*.so
