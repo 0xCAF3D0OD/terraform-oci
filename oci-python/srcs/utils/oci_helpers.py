@@ -38,6 +38,7 @@ def get_compartment_list(
 
 def get_groups_list(groups_list: list[dict[str, str]]) -> dict:
     try:
+        print(f"get_groups_list {groups_list}")
         structured_groups_dict= {}
         for group in groups_list:
             display_label = f"{group.display_name}-{group.id}"

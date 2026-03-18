@@ -3,7 +3,7 @@ from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
 from classes import ConfigState
-from config import STYLE
+from utils.config import STYLE
 from typing import Any
 import oci
 import os
@@ -28,8 +28,8 @@ def inquire_display_user_actions() -> Any:
         Separator(),
         "3A. -- new policy",
         # "3B. -- delete policy",
-        # Separator(),
-        # "4A. -- new user",
+        Separator(),
+        "4A. -- new user",
         # "4B. -- delete user",
         # Separator(),
         # "5A. -- new group",
@@ -57,12 +57,11 @@ def inquirer_oci_domains(config_file) -> str:
     )
     domain_url = get_domain_response.data.url
 
-
     ConfigState.domain_data = get_domain_response.data
 
     return domain_url
 
-def inquirer_oci_users(config_file) -> tuple[dict[str, list[Any] | Any], oci.identity_domains.IdentityDomainsClient]:
+def inquirer_oci_users(config_file, config_class: ConfigState) -> tuple[dict[str, list[Any] | Any], oci.identity_domains.IdentityDomainsClient]:
     domain_url = inquirer_oci_domains(config_file)
 
     identity_domains_client = oci.identity_domains.IdentityDomainsClient(config_file, domain_url)
@@ -89,6 +88,15 @@ def inquirer_oci_users(config_file) -> tuple[dict[str, list[Any] | Any], oci.ide
             print("  - no groups")
         users_list[user.user_name] = user_info
     selected_user_name = inquire_display_dict(users_list, "Which user do you want ?")
-    ConfigState.target_user_credentials = users_list[selected_user_name]
+    config_class.target_user_credentials = users_list[selected_user_name]
     selected_user_credentials = users_list[selected_user_name]
     return selected_user_credentials, identity_domains_client
+
+def user_validation_by_y_n(message_for_user: str) -> bool:
+    user_input = inquirer.text(
+        message=message_for_user,
+        style=STYLE,
+        validate=lambda result: result == "Y" or result == "n",
+        invalid_message="Please enter Y or n",
+    ).execute()
+    return user_input

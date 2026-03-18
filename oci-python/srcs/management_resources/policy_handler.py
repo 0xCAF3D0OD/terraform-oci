@@ -2,19 +2,20 @@ import oci
 import sys
 import datetime
 from classes import ConfigState
-from InquirerPy import inquirer
 from dotenv import load_dotenv
 from InquirerPy import inquirer
-from oci_helpers import get_groups_list
-from config import RED, YELLOW, RESET, STYLE
-from config import (
+from management_resources.groupes_handler import get_groups_list
+
+from utils.config import RED, YELLOW, RESET, STYLE
+from utils.config import (
     POLICY_LOCA,
     POLICY_VERB,
     POLICY_SUBJECT,
     POLICY_RES_TYPE
 )
-from inquire_managment import inquire_display_dict
-from compartiment import compartment_selection
+
+from utils.inquire_handler import inquire_display_dict
+from governance_resources.compartiment_handler import compartment_selection
 
 load_dotenv()
 
@@ -112,8 +113,9 @@ def creat_new_policy_response(identity_client, group_name):
         )
     )
 
-def policy_management(identity_client, raw_groups_list) -> None:
+def policy_handler(identity_client, raw_groups_list) -> None:
     try:
+        print("in policy management")
         structured_groupe_dict = get_groups_list(raw_groups_list)
         compartment_selection(identity_client)
         if not structured_groupe_dict:

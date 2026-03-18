@@ -6,32 +6,69 @@ import oci
 from dotenv import load_dotenv
 from InquirerPy import inquirer
 from classes import ConfigState
-from config import GREEN, YELLOW, RED, RESET, STYLE
-from config import define_tags
-from inquire_managment import inquire_display_dict
-from oci_helpers import get_compartment_list
+from utils.config import GREEN, YELLOW, RED, RESET, STYLE
+from utils.config import define_tags
+from utils.inquire_handler import inquire_display_dict, user_validation_by_y_n
 
 load_dotenv()
 
 EXIT_OPTION = "exit"
 
+def get_compartment_list(
+        identity_client: oci.identity.IdentityClient,
+        current_id: str,
+        parent_name: str,
+        list_compartments: dict[str, dict[str, str]]
+) -> dict:
+    try:
+        # Appel API
+        list_compartments_response = identity_client.list_compartments(
+            compartment_id=current_id,
+            sort_by="NAME",
+            sort_order="ASC",
+            lifecycle_state="ACTIVE"
+        )
+
+        for compartment in list_compartments_response.data:
+            # On crée un label unique pour éviter d'écraser des doublons (Nom + Parent)
+            display_label = f"{compartment.name} (parent: {parent_name})"
+            list_compartments[display_label] = {
+                "cmp_name": compartment.name,
+                "cmp_parent": parent_name,
+                "cmp_ocid": compartment.id,
+            }
+            get_compartment_list(identity_client, compartment.id, compartment.name, list_compartments)
+
+        return list_compartments
+
+    except oci.exceptions.ServiceError as e:
+        # Erreur côté OCI (ex: 403 Forbidden si tu n'as pas accès à un sous-compartiment)
+        print(f"⚠️  Skipping sub-compartments of {parent_name}: {e.message}")
+        return list_compartments
+    except Exception as e:
+        # Erreur critique (ex: Coupure réseau)
+        print(f"❌ Critical error fetching compartments: {e}")
+        return list_compartments
+
+
 def resume_compartment_data(
         new_compartment_name: str,
         description: str,
         freeform_tags,
-        defined_tags
+        defined_tags,
+        config_class: ConfigState
 ) -> None:
     print(f"\n{YELLOW}=== Compartment Configuration ==={RESET}\n"
-          f"{YELLOW}Parent compartment:{RESET} {GREEN}{ConfigState.target_compartment_credentials["cmp_name"]}{RESET} → "
-          f"{GREEN}{ConfigState.target_compartment_credentials["cmp_ocid"]}{RESET}\n"
+          f"{YELLOW}Parent compartment:{RESET} {GREEN}{config_class.get_compartment_name()}{RESET} → "
+          f"{GREEN}{config_class.get_compartment_id()}{RESET}\n"
           f"{YELLOW}Compartment name:{RESET} {GREEN}{new_compartment_name}{RESET}\n"
           f"{YELLOW}Description:{RESET} {GREEN}{description}{RESET}\n"
           f"{YELLOW}Freeform tags:{RESET} {GREEN}{freeform_tags}{RESET}\n"
           f"{YELLOW}Defined tags:{RESET} {GREEN}{defined_tags}{RESET}\n"
           f"{YELLOW}{'='*35}{RESET}\n")
 
-def validate_compartment_name(new_compartment_name: str) -> str:
-    while new_compartment_name == ConfigState.target_compartment_credentials["cmp_name"]:
+def validate_compartment_name(new_compartment_name: str, config_class: ConfigState) -> str:
+    while new_compartment_name == config_class.get_compartment_name():
         print(f"❌ '{new_compartment_name}' is the same as parent. Please use a different name.")
         new_compartment_name = inquirer.text(
             message="Enter a NEW compartment name:",
@@ -40,7 +77,7 @@ def validate_compartment_name(new_compartment_name: str) -> str:
 
     return new_compartment_name
 
-def compartment_requirements() -> tuple[str | None, str]:
+def compartment_requirements(config_class: ConfigState) -> tuple[str | None, str]:
     # Name validation
     new_compartment_name = inquirer.text(
         message="Enter the compartment name:",
@@ -50,7 +87,7 @@ def compartment_requirements() -> tuple[str | None, str]:
     ).execute()
 
     # Parent compartment verification (retry loop)
-    new_compartment_name = validate_compartment_name(new_compartment_name)
+    new_compartment_name = validate_compartment_name(new_compartment_name, config_class)
 
     # Description Validation
     new_compartment_description = inquirer.text(
@@ -62,27 +99,23 @@ def compartment_requirements() -> tuple[str | None, str]:
 
     return new_compartment_name, new_compartment_description
 
-def create_new_compartment(identity_client: oci.identity.IdentityClient) -> None:
+def create_new_compartment(identity_client: oci.identity.IdentityClient, config_class: ConfigState) -> None:
     try:
-        new_compartment_name, description = compartment_requirements()
+        new_compartment_name, description = compartment_requirements(config_class)
         freeform_tags, defined_tags = define_tags(new_compartment_name)
         while True:
             resume_compartment_data(
                 new_compartment_name,
                 description,
                 freeform_tags,
-                defined_tags
+                defined_tags,
+                config_class
             )
-            choice = inquirer.text(
-                message="do you want to create this new compartment: Y/n",
-                style=STYLE,
-                validate=lambda result: result == "Y" or result == "n",
-                invalid_message="Please enter Y/N",
-            ).execute()
+            choice = user_validation_by_y_n("do you want to create this new compartment: Y/n")
             if choice == "Y":
                 identity_client.create_compartment(
                     create_compartment_details=oci.identity.models.CreateCompartmentDetails(
-                        compartment_id=ConfigState.target_compartment_credentials["cmp_ocid"],
+                        compartment_id=config_class.get_compartment_id(),
                         name=new_compartment_name,
                         description=description,
                         freeform_tags=freeform_tags,
@@ -117,12 +150,12 @@ def create_new_compartment(identity_client: oci.identity.IdentityClient) -> None
     except Exception as e:
         print(f"Error in create_compartment: {e}")
 
-def compartment_selection(identity_client: oci.identity.IdentityClient) -> None:
+def compartment_selection(identity_client: oci.identity.IdentityClient, config_class: ConfigState) -> None:
     all_compartments = {}
 
     list_compartments = get_compartment_list(
         identity_client,
-        ConfigState.config_file_entries["tenancy"],
+        config_class.get_tenancy(),
         "dk_company",
         all_compartments
     )
@@ -137,7 +170,7 @@ def compartment_selection(identity_client: oci.identity.IdentityClient) -> None:
         print(f"{RED}exit program ... {RESET}")
         sys.exit(0)
     selected_compartment_credential = list_compartments[selected_compartment_name]
-    ConfigState.target_compartment_credentials = selected_compartment_credential
+    config_class.target_compartment_credentials = selected_compartment_credential
 
 #{
 #   'user_name': 'vincentRevole@admindev.com',
@@ -149,10 +182,10 @@ def compartment_selection(identity_client: oci.identity.IdentityClient) -> None:
 #       'ocid': 'ocid1.group.oc1..aaaaaaaa...'
 #    }]
 #}
-def compartment_management(identity_client, config_file) -> None:
+def compartment_handler(identity_client, config_class: ConfigState) -> None:
     try:
-        compartment_selection(identity_client, config_file)
-        create_new_compartment(identity_client)
+        compartment_selection(identity_client, config_class)
+        create_new_compartment(identity_client, config_class)
 
     except oci.exceptions.ServiceError as e:
         # Erreurs retournées par l'API Oracle (ex: 403 Forbidden, 404 Not Found)

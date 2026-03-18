@@ -1,3 +1,4 @@
+from InquirerPy import inquirer
 from InquirerPy.utils import get_style
 from InquirerPy.base.control import Choice
 from classes import ConfigState
