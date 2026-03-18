@@ -5,16 +5,16 @@ from __future__ import annotations
 import sys
 import oci
 
-from InquirerPy import inquirer
-from InquirerPy.base.control import Choice
-from InquirerPy.separator import Separator
-
 from classes import ConfigState
-from utils.config import YELLOW, RESET
 from dotenv import load_dotenv
-from governance_resources.compartiment_handler import compartment_handler
+
+from governance_resources.compartment_handler import compartment_handler, compartment_selection
+
+from management_resources.groupes_handler import groups_handler
 from management_resources.users_handler import users_handler
 from management_resources.policy_handler import policy_handler
+
+from utils.config import YELLOW, RESET
 from utils.inquire_handler import (
     inquire_display_user_actions,
     inquirer_oci_users
@@ -43,8 +43,9 @@ def check_users_permissions(
         identity_domains_client,
         tenancy_id,
         config_class: ConfigState
-) -> tuple[bool, dict]:
-    print(f'\n🔍 {YELLOW}Checking IAM Permissions...{RESET} {config_class.target_user_credentials["user_name"]}')
+) -> None:
+
+    print(f'\n🔍 {YELLOW}Checking IAM Permissions...{RESET} {config_class.target_user_credentials["user_name"]}\n')
 
     # 1. Test des compartiments (on garde l'ID racine par défaut)
     target_id = tenancy_id
@@ -75,8 +76,7 @@ def check_users_permissions(
         "users": {"status": u_status, "data": u_response.data if u_status and u_response else []}
     }
     config_class.iam_user_resources_access = responses
-    all_passed = all([c_status, p_status, g_status, u_status])
-    return all_passed, responses
+    # all_passed = all([c_status, p_status, g_status, u_status])
 
 def main():
     try:
@@ -102,7 +102,7 @@ def main():
                 identity_client = oci.identity.IdentityClient(config_class.config_file_entries)
 
                 #Did the user have permission for doing the further commands
-                all_status, responses = check_users_permissions(
+                check_users_permissions(
                     identity_client,
                     identity_domains_client,
                     config_class.get_tenancy(),
@@ -112,11 +112,14 @@ def main():
                 if "new compartment" in user_action and config_class.get_compartment_status() == True:
                     compartment_handler(identity_client, config_class)
                 elif "new group" in user_action:
-                    policy_handler(identity_client)
+                    compartment_selection(identity_client, config_class)
+                    groups_handler(identity_client, config_class)
                 elif "new user" in user_action:
-                    users_handler(identity_client, config_class)
-                elif "new policy" in user_action and responses["policies"]["status"] == True:
-                    policy_handler(identity_client, responses["groups"]["data"].resources)
+                    compartment_selection(identity_client, config_class)
+                    users_handler(identity_domains_client, identity_client, config_class)
+                elif "new policy" in user_action and config_class.get_policies_status() == True:
+                    compartment_selection(identity_client, config_class)
+                    policy_handler(identity_client, config_class)
                 break
     except oci.exceptions.ConfigFileNotFound as e:
         print(f'OCI ERROR Config file not found: {e}')
@@ -128,6 +131,4 @@ def main():
         print(f"Error in main methode: {e}")
 
 if __name__ == "__main__":
-    print(f"sys.path -> {sys.path}")
-#
     main()

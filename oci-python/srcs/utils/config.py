@@ -1,6 +1,7 @@
 from InquirerPy import inquirer
 from InquirerPy.utils import get_style
 from InquirerPy.base.control import Choice
+from typing import Optional
 from classes import ConfigState
 import datetime
 from functools import wraps
@@ -32,19 +33,21 @@ STYLE = get_style({
 #   'key_file': '~/.oci/vrevol_keys/oci_api_key.pem'
 # }
 
-def define_tags(new_compartment_name: str) -> tuple[dict, dict]:
-    cmp_tag, project_tag, env_tag = new_compartment_name.split("-")
-    freeform_tags = {
-        'env': env_tag,
-        'team': 'devops',
-        'project': project_tag,
-        'created_by': ConfigState.target_user_credentials["user_name"],
-        'backup-required': "false" if env_tag == "dev" else "true"
-    }
+def define_tags(new_ressourc_name: str, creation_resource_type: str, config: ConfigState) -> tuple[Optional[dict], dict]:
+    freeform_tags = {}
+    if creation_resource_type == "compartment":
+        cmp_tag, project_tag, env_tag = new_ressourc_name.split("-")
+        freeform_tags = {
+            'env': env_tag,
+            'team': 'devops',
+            'project': project_tag,
+            'created_by': config.get_username(),
+            'backup-required': "false" if env_tag == "dev" else "true"
+        }
 
     defined_tags = {
         'Oracle-Tags': {
-            'CreatedBy': ConfigState.target_user_credentials["user_name"],
+            'CreatedBy':config.get_username(),
             'CreatedOn': datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         }
     }

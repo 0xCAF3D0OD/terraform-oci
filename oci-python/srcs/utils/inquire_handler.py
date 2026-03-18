@@ -3,20 +3,30 @@ from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
 from classes import ConfigState
-from utils.config import STYLE
+from utils.config import STYLE, RED, GREEN, RESET
 from typing import Any
 import oci
+import sys
 import os
 
+EXIT_OPTION = "Exit"
+SEPARATOR = f"{GREEN} ------------------- {RESET}"
+
 def inquire_display_dict(dictionary: dict[str, str], key_phrase: str) -> Any:
-    choice = inquirer.select(
+    print(SEPARATOR)
+    user_selection = inquirer.select(
         message=f"{key_phrase}",
         style=STYLE,  # On applique le style ici
-        choices=list(dictionary.keys()),
+        choices=[EXIT_OPTION] + list(dictionary.keys()),
+        default=EXIT_OPTION
     ).execute()  # .execute() remplace inquirer.prompt()
 
+    if user_selection == EXIT_OPTION:
+        print(SEPARATOR)
+        print(f"{RED}Exit program ... {RESET}")
+        sys.exit(0)
     # On retourne un dictionnaire pour rester cohérent avec tes appels précédents
-    return choice
+    return user_selection
 
 
 def inquire_display_user_actions() -> Any:
@@ -45,7 +55,7 @@ def inquire_display_user_actions() -> Any:
 
     return choice
 
-def inquirer_oci_domains(config_file) -> str:
+def inquirer_oci_domains(config_file, config_class: ConfigState) -> str:
     env_vars = dict(os.environ)
     oci_domains = {key: value for key, value in env_vars.items() if "DOMAIN" in key}
 
@@ -57,12 +67,13 @@ def inquirer_oci_domains(config_file) -> str:
     )
     domain_url = get_domain_response.data.url
 
-    ConfigState.domain_data = get_domain_response.data
+    config_class.domain_data = get_domain_response.data
 
     return domain_url
 
-def inquirer_oci_users(config_file, config_class: ConfigState) -> tuple[dict[str, list[Any] | Any], oci.identity_domains.IdentityDomainsClient]:
-    domain_url = inquirer_oci_domains(config_file)
+def inquirer_oci_users(config_file, config_class: ConfigState) \
+        -> tuple[dict[str, list[Any] | Any], oci.identity_domains.IdentityDomainsClient]:
+    domain_url = inquirer_oci_domains(config_file, config_class)
 
     identity_domains_client = oci.identity_domains.IdentityDomainsClient(config_file, domain_url)
     response = identity_domains_client.list_users(attributes="userName,groups,ocid")

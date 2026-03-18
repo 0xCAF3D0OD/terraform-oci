@@ -102,7 +102,7 @@ def compartment_requirements(config_class: ConfigState) -> tuple[str | None, str
 def create_new_compartment(identity_client: oci.identity.IdentityClient, config_class: ConfigState) -> None:
     try:
         new_compartment_name, description = compartment_requirements(config_class)
-        freeform_tags, defined_tags = define_tags(new_compartment_name)
+        freeform_tags, defined_tags = define_tags(new_compartment_name, "compartment", config_class)
         while True:
             resume_compartment_data(
                 new_compartment_name,
@@ -133,7 +133,7 @@ def create_new_compartment(identity_client: oci.identity.IdentityClient, config_
                 ).execute()
                 if field == "name":
                     new_compartment_name = input("New name: ").strip()
-                    freeform_tags, defined_tags = define_tags(new_compartment_name)
+                    freeform_tags, defined_tags = define_tags(new_compartment_name, "compartment", config_class)
                 elif field == "description":
                     description = input(f"\n{YELLOW}New description: {RESET}").strip()
                 else:
@@ -162,7 +162,6 @@ def compartment_selection(identity_client: oci.identity.IdentityClient, config_c
     if not list_compartments:
         raise ValueError(f"{RED}compartment not created or not found{RESET}")
 
-    list_compartments.update({EXIT_OPTION: EXIT_OPTION})
     selected_compartment_name = inquire_display_dict(
         list_compartments,
         "Which compartment do you need ?")
@@ -170,7 +169,8 @@ def compartment_selection(identity_client: oci.identity.IdentityClient, config_c
         print(f"{RED}exit program ... {RESET}")
         sys.exit(0)
     selected_compartment_credential = list_compartments[selected_compartment_name]
-    config_class.target_compartment_credentials = selected_compartment_credential
+    config_class.target_compartment = selected_compartment_credential
+    return None
 
 #{
 #   'user_name': 'vincentRevole@admindev.com',

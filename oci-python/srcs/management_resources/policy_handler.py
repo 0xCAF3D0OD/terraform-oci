@@ -15,21 +15,21 @@ from utils.config import (
 )
 
 from utils.inquire_handler import inquire_display_dict
-from governance_resources.compartiment_handler import compartment_selection
+from governance_resources.compartment_handler import compartment_selection
 
 load_dotenv()
 
 EXIT_OPTION = "exit"
 
-def listing_policies(identity_client, selected_group_id):
+def listing_policies(identity_client, selected_group_id, config_class: ConfigState) -> None:
     list_policies_response = identity_client.list_policies(
-        compartment_id=ConfigState.target_compartment_credentials['cmp_ocid'],
+        compartment_id=config_class.get_compartment_id(),
         sort_by="NAME",
         sort_order="ASC",
         lifecycle_state="ACTIVE"
     )
 
-def build_policy_statement(group_name):
+def build_policy_statement(group_name, config_class: ConfigState):
     inquirer_details = [
         ("choose your subject: ", POLICY_SUBJECT, "select"),
         ("choose your verb: ", POLICY_VERB, "select"),
@@ -82,15 +82,14 @@ def build_policy_statement(group_name):
 
     resources = ",".join(policy_details[2])
     return (f"Allow "
-          f"{policy_details[0].upper()} {ConfigState.domain_data.display_name}/{group_name} to "
+          f"{policy_details[0].upper()} {config_class.domain_data.display_name}/{group_name} to "
           f"{policy_details[1].upper()} "
           f"{resources} in "
-          f"{policy_details[3].upper()} {ConfigState.target_compartment_credentials['cmp_ocid']}"
+          f"{policy_details[3].upper()} {config_class.get_compartment_id()}"
           f"{f' where {policy_details[4]}' if policy_details[4] else ''}"
     )
 
-def creat_new_policy_response(identity_client, group_name):
-    print(ConfigState.target_compartment_credentials['cmp_ocid'])
+def creat_new_policy_response(identity_client, group_name, config_class: ConfigState) -> None:
     name = inquirer.text(
         message="enter new policy name: ",
         style=STYLE,
@@ -105,7 +104,7 @@ def creat_new_policy_response(identity_client, group_name):
     ).execute()
     identity_client.create_policy(
         create_policy_details=oci.identity.models.CreatePolicyDetails(
-            compartment_id=ConfigState.target_compartment_credentials['cmp_ocid'],
+            compartment_id=config_class.get_compartment_id(),
             name=policy_name,
             statements=[statement],
             description=description,
@@ -113,22 +112,16 @@ def creat_new_policy_response(identity_client, group_name):
         )
     )
 
-def policy_handler(identity_client, raw_groups_list) -> None:
+def policy_handler(identity_client, config_class: ConfigState) -> None:
     try:
-        print("in policy management")
-        structured_groupe_dict = get_groups_list(raw_groups_list)
-        compartment_selection(identity_client)
+        structured_groupe_dict = get_groups_list(config_class.get_groups("list"), config_class)
         if not structured_groupe_dict:
             raise ValueError(f"{RED}groups not created or not found{RESET}")
 
-        structured_groupe_dict.update({EXIT_OPTION: EXIT_OPTION})
         selected_group_name = inquire_display_dict(
             structured_groupe_dict,
             "Which group do you need ?")
-        if selected_group_name == EXIT_OPTION:
-            print(f"{RED}exit program ... {RESET}")
-            sys.exit(0)
         # listing_policies(identity_client, selected_group_name)
-        creat_new_policy_response(identity_client, selected_group_name)
+        creat_new_policy_response(identity_client, selected_group_name, config_class)
     except Exception as e:
-        print(f"Exception in compartment management: {e}")
+        print(f"Exception in policy handler: {e}")

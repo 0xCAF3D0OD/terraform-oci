@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 
@@ -20,15 +22,32 @@ class ConfigState:
     parent_compartment_id: Optional[str] = ''
     parent_compartment_name: Optional[str] = ''
 
+    target_compartment: Optional[Dict[str, Any]] = field(default_factory=dict)
+    target_group: Optional[Dict[str, Any]] = field(default_factory=dict)
+    target_user: Optional[Dict[str, Any]] = field(default_factory=dict)
+    target_policy: Optional[Dict[str, Any]] = field(default_factory=dict)
+
 
     def get_compartment(self) -> Dict[str, Any]:
         return self.iam_user_resources_access["compartment"]["data"]
 
-    def get_groups(self) -> Dict[str, Any]:
+    def get_groups(self, type_data: str) -> Dict[str, Any] | list[Dict[str, Any]]:
+        if type_data == "list":
+            return self.iam_user_resources_access["groups"]["data"].resources
+        elif type_data == "name":
+            return self.target_group["group_name"]
+        elif type_data == "ocid":
+            return self.target_group["group_ocid"]
+        elif type_data == "id":
+            return self.target_group["group_id"]
         return self.iam_user_resources_access["groups"]["data"]
+
 
     def get_policies(self) -> Dict[str, Any]:
         return self.iam_user_resources_access["policies"]["data"]
+
+    def get_policies_status(self) -> Dict[str, Any]:
+        return self.iam_user_resources_access["policies"]["status"]
 
     def get_users(self) -> Dict[str, Any]:
         return self.iam_user_resources_access["users"]["data"]
@@ -43,7 +62,7 @@ class ConfigState:
         return self.iam_user_resources_access["compartments"]["status"]
 
     def get_compartment_id(self) -> Dict[str, Any]:
-        return self.target_compartment_credentials["cmp_ocid"]
+        return self.target_compartment['cmp_ocid']
 
     def get_compartment_name(self) -> Dict[str, Any]:
-        return self.target_compartment_credentials["cmp_name"]
+        return self.target_compartment["cmp_name"]
