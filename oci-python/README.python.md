@@ -38,17 +38,16 @@ oci-python/
 
 ### Prerequisites
 
-* Python 3.10+ installed.
-* OCI CLI configured: A valid `~/.oci/config` file with your API keys.
+* OCI CLI configured: A valid `~/.oci/config` file with your API keys (see on [README.md](../README.md)).
 * `.env` file: Must contain your OCI domains (ex: `EDUCHAT_DOMAIN=https://...`).
-* Libraries: `pip install oci InquirerPy python-dotenv`.
 
 ## Installation
 
 ### Option 1 : Download Binary (Easiest)
 ```bash
 # Download the latest release from GitHub Releases
-chmod +x oci-resource-ctl
+https://github.com/0xCAF3D0OD/terraform-oci/releases/tag/v1.0.0
+chmod +x oci-resource-ctl.os_version
 ./oci-resource-ctl
 ```
 
