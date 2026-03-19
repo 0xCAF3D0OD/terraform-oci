@@ -10,7 +10,7 @@ sécurisée avec Terraform, suivant le principe du **Moindre Privilège**.
 - **`terraform/`** - Configuration Terraform IaC pour OCI
   - Compartiments et organisation des ressources
 
-- **`oci-python/`** - Outils Python pour la gestion d'OCI
+- **`oci-python/`** - Outils Python pour la gestion d'OCI - voir: [documentation oci-python-ctl](oci-python/README.overview.md)
   - CLI interactif pour la manipulation de la structure OCI (compartiment, utilisateur, politiques, etc.)
   - Utilisation de la librairie `inquirer` pour l'interface utilisateur
   - Script d'aide pour automatiser les tâches courantes
