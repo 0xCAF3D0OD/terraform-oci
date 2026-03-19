@@ -62,7 +62,7 @@ It blocks your executable because:
 #### If you really want to test the script follow this actions. (you must add the real name of the script): 
 
 ```bash
-cd ~/projects/oci-python/srcs/
+cd ~/current_script_folder
 
 # Remove the quarantine attribute
 xattr -d com.apple.quarantine [script_name]
