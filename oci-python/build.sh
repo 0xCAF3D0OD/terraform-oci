@@ -3,15 +3,15 @@ set -e
 
 cd srcs/
 
-echo "🔨 Building for $(uname -s) $(uname -m)..."
+echo "Building for $(uname -s) $(uname -m)..."
 
 # Install dependencies
 pip install dotenv python-dotenv inquirerpy inquirer oci pyinstaller
 
-# CRITIQUE : Ajouter le répertoire courant au PYTHONPATH
+# TIP: Add the current directory to the PYTHONPATH
 export PYTHONPATH="$(pwd):$PYTHONPATH"
 
-# Vérifier que Python trouve les modules
+# Check that Python can find the modules
 echo "🔍 Verifying modules are importable..."
 python3 << 'EOF'
 import sys
@@ -27,10 +27,32 @@ except ImportError as e:
 try:
     from management_resources.users_handler import users_handler
     print("✅ users_handler found")
+    from management_resources.groupes_handler import groups_handler
+    print("✅ groupes_handler found")
+    from management_resources.policy_handler import policy_handler
+    print("✅ policy_handler found")
 except ImportError as e:
-    print("❌ users_handler NOT found:", e)
+    print("❌ management_resources handler NOT found:", e)
     sys.exit(1)
 
+try:
+    from governance_resources.compartment_handler import compartment_handler, compartment_selection
+    print("✅ compartment_handler and compartment_selection found")
+except ImportError as e:
+    print("❌ governance_resources handler NOT found:", e)
+    sys.exit(1)
+
+try:
+  from utils.config import YELLOW, RESET
+  print("✅ config found")
+  from utils.inquire_handler import (
+      inquire_display_user_actions,
+      inquirer_oci_users
+  )
+  print("✅ inquire_handler found")
+except ImportError as e:
+    print("❌ utils methods NOT found:", e)
+    sys.exit(1)
 print("✅ All modules importable")
 EOF
 

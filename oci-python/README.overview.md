@@ -45,12 +45,35 @@ oci-python/
 
 ### Option 1 : Download Binary (Easiest)
 ```bash
-# Download the latest release from GitHub Releases
+# Download the latest release from GitHub Releases be aware on your current os version
 https://github.com/0xCAF3D0OD/terraform-oci/releases/tag/v1.0.0
-chmod +x oci-resource-ctl.os_version
+chmod +x oci-resource-ctl...
 ./oci-resource-ctl
 ```
+#### WARNING 
+You may have trouble to launch the script on MACOS, because of: **macOS Gatekeeper**
 
+It blocks your executable because:
+
+- PyInstaller creates an unsigned binary
+- No Apple Developer Certificate ($99/year)
+- macOS considers this “dangerous” by default
+
+#### If you really want to test the script follow this actions. (you must add the real name of the script): 
+
+```bash
+cd ~/projects/oci-python/srcs/
+
+# Remove the quarantine attribute
+xattr -d com.apple.quarantine [script_name]
+
+# Verify that it has been removed
+xattr -l [script_name]
+# (should display nothing or not display “com.apple.quarantine”)
+
+# Run
+./[script_name]
+```
 ### Option 2 : Build from Source
 ```bash
 git clone https://github.com/0xCAF3D0OD/terraform-oci.git
