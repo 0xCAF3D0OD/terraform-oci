@@ -76,10 +76,10 @@ def create_new_user(identity_domains_client, config_class: ConfigState):
             )
         )
 
-        member = GroupMembers(
-            value=user_id,  # ID du user
-            type="User"  # Type du member
-        )
+        # member = GroupMembers(
+        #     value=user_id,  # ID du user
+        #     type="User"  # Type du member
+        # )
 
         print(f"{GREEN}✅ User created successfully!{RESET}")
     else:

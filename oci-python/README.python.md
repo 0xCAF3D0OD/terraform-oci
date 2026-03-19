@@ -1,22 +1,38 @@
-# Infrastructure Management Tool
+# Infrastructure Management Tool (still in developpment)
 
-- Warning it's still in developpment
+The `oci-python` CLI is an **interactive assistant** that automates administrative tasks for Oracle Cloud Infrastructure (OCI). It is an IAM management tool that guides users step-by-step through the creation of compartments, users, groups, and policies with **automatic validation and standardization**.
+
+**In short:** An interactive interface that ensures you do things in a secure and traceable way.
 
 ## 1. System Architecture Overview
 
-The script functions as an "assembly line" where each module has a precise role:
+```
+oci-python/
+├── srcs/
+│   ├── classes.py                          (Data models = “Toolkit”)
+│   │
+│   ├── governance_resources/               (Governance resources)
+│   │   └── compartment_handler.py          (Compartment management)
+│   │
+│   ├── management_resources/               (IAM “management” resources)
+│   │   ├── users_handler.py                (User management)
+│   │   ├── groups_handler.py              (Group management)
+│   │   └── policy_handler.py               (Policy management)
+│   │
+│   └── utils/                              (Utilities)
+│       ├── config.py                       (Tags, styles, constants)
+│       └── inquire_handler.py              (Interactive interface)
+│
+├── requirements.txt                        (Dependencies)
+├── build.sh & install.sh                  (Deployment scripts)
+└── .env                                    (OCI environment variables)
+```
 
-<img src="../img/script_fonct_schemas.png" alt="schemas" width="600">
+<img src="../img/oci-python-workflow.png" alt="schemas" width="600">
 
 ## 2. How It Works
 
-The system is an interactive assistant that automates administrative tasks on Oracle Cloud (OCI). It is broken down into three phases:
-
-1. **Identification & Rights:** The script identifies the user via their OCI domain, then performs an immediate "check-up" of their permissions to prevent launching an action that will fail due to insufficient rights.
-
-2. **Exploration:** Through recursion in `inquire_managment.py`, the script "scans" your entire company hierarchy to present you with a clear list of available parents.
-
-3. **Standardized Action:** When creating (example: compartment), the script enforces a naming format (`cmp-name-env`) and automatically generates traceability tags (who created what, when, and what is the parent project).
+**see in workflow README md file**
 
 ## 3. Getting Started
 
@@ -27,12 +43,30 @@ The system is an interactive assistant that automates administrative tasks on Or
 * `.env` file: Must contain your OCI domains (ex: `EDUCHAT_DOMAIN=https://...`).
 * Libraries: `pip install oci InquirerPy python-dotenv`.
 
+## Installation
+
+### Option 1 : Download Binary (Easiest)
+```bash
+# Download the latest release from GitHub Releases
+chmod +x oci-resource-ctl
+./oci-resource-ctl
+```
+
+### Option 2 : Build from Source
+```bash
+git clone https://github.com/0xCAF3D0OD/terraform-oci.git
+cd oci-python
+pip install -r requirements.txt
+pyinstaller oci-resource-ctl.spec
+./dist/oci-resource-ctl
+```
+
 ### Commands
 
 To launch the tool:
 
 ```bash
-python3 user_managment.py
+./oci-resourc-ctl
 ```
 
 ### Simple Example: Creating a Test Compartment

@@ -1,27 +1,58 @@
 # -*- mode: python ; coding: utf-8 -*-
+
+block_cipher = None
+
 a = Analysis(
-    ['oci-resource-ctl'],
-    pathex=[],
+    ['oci-resource-ctl'],  # Script principal
+    pathex=['.'],  # ← IMPORTANT : Ajouter le répertoire courant
     binaries=[],
-    datas=[],  # ← Laisse vide
+    datas=[],
     hiddenimports=[
+        # Module racine
+        'classes',
+
+        # Sous-paquet governance_resources
+        'governance_resources',
+        'governance_resources.compartment_handler',
+
+        # Sous-paquet management_resources
+        'management_resources',
+        'management_resources.groupes_handler',
+        'management_resources.policy_handler',
+        'management_resources.users_handler',
+
+        # Sous-paquet utils
+        'utils',
+        'utils.config',
+        'utils.inquire_handler',
+
+        # Dépendances externes qui peuvent poser problème
+        'InquirerPy',
+        'InquirerPy.base.control',
+        'InquirerPy.separator',
         'oci',
-        'inquirer',
-     ],
+        'oci.identity',
+        'oci.config',
+        'oci.exceptions',
+        'dotenv',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
     noarchive=False,
-    optimize=0,
 )
 
-pyz = PYZ(a.pure)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
     pyz,
     a.scripts,
     a.binaries,
+    a.zipfiles,
     a.datas,
     [],
     name='oci-resource-ctl',
