@@ -9,12 +9,12 @@ The `oci-python` CLI is an **interactive assistant** that automates administrati
 ```
 oci-python/
 ├── srcs/
-│   ├── classes.py                          (Data models = “Toolkit”)
+│   ├── classes.py                          (Data models = "Toolkit")
 │   │
 │   ├── governance_resources/               (Governance resources)
 │   │   └── compartment_handler.py          (Compartment management)
 │   │
-│   ├── management_resources/               (IAM “management” resources)
+│   ├── management_resources/               (IAM "management" resources)
 │   │   ├── users_handler.py                (User management)
 │   │   ├── groups_handler.py              (Group management)
 │   │   └── policy_handler.py               (Policy management)
@@ -57,7 +57,7 @@ It blocks your executable because:
 
 - PyInstaller creates an unsigned binary
 - No Apple Developer Certificate ($99/year)
-- macOS considers this “dangerous” by default
+- macOS considers this "dangerous" by default
 
 #### If you really want to test the script follow this actions. (you must add the real name of the script): 
 
@@ -69,7 +69,7 @@ xattr -d com.apple.quarantine [script_name]
 
 # Verify that it has been removed
 xattr -l [script_name]
-# (should display nothing or not display “com.apple.quarantine”)
+# (should display nothing or not display "com.apple.quarantine")
 
 # Run
 ./[script_name]

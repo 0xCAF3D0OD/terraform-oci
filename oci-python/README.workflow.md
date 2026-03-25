@@ -52,28 +52,28 @@ all_compartments = get_compartment_list(
 
 # 2. Result = hierarchical dictionary
 {
-    “cmp_dev (parent: dk_company)”: {
-        “cmp_name”: “cmp_dev”,
-        “cmp_parent”: “dk_company”,
-        “cmp_ocid”: “ocid1.compartment.oc1..xxx”
+    "cmp_dev (parent: dk_company)": {
+        "cmp_name": "cmp_dev",
+        "cmp_parent": "dk_company",
+        "cmp_ocid": "ocid1.compartment.oc1..xxx"
     },
-    “cmp_test (parent: cmp_dev)”: {
-        “cmp_name”: “cmp_test”,
-        “cmp_parent”: “cmp_dev”,
-        “cmp_ocid”: “ocid1.compartment.oc1..yyy”
+    "cmp_test (parent: cmp_dev)": {
+        "cmp_name": "cmp_test",
+        "cmp_parent": "cmp_dev",
+        "cmp_ocid": "ocid1.compartment.oc1..yyy"
     },
     ...
 }
 
 # 3. Selection menu
-selected = inquire_display_dict(compartments, “Which compartment do you need?”)
+selected = inquire_display_dict(compartments, "Which compartment do you need?")
 ConfigState.target_compartment = compartments[selected]
 ```
 ### Result:
 ```doctest
 ConfigState.target_compartment = {
-    “cmp_name”: “cmp_dev”,
-    “cmp_ocid”: “ocid1.compartment.oc1..xxx”
+    "cmp_name": "cmp_dev",
+    "cmp_ocid": "ocid1.compartment.oc1..xxx"
 }
 ```
 
@@ -83,23 +83,23 @@ ConfigState.target_compartment = {
 
 ### Step 3: Automatic Tag Generation
 
-**Function:** `define_tags(name, “compartment”, config_class)`
+**Function:** `define_tags(name, "compartment", config_class)`
 
 ```python
-# Input: “cmp-educhat-dev”
-# Parsing: split(“-”) → [“cmp”, ‘educhat’, “dev”]
+# Input: "cmp-educhat-dev"
+# Parsing: split("-") → ["cmp", 'educhat', "dev"]
 
 freeform_tags = {
-    ‘env’: ‘dev’,                          # ← Extracted from the name
-    ‘team’: ‘devops’,                      # ← Fixed
-    'project': ‘educhat’,                  # ← Extracted from the name
-    ‘created_by’: ‘vincentRevole’,         # ← User configuration
-    ‘backup-required’: ‘false’             # ← Logic: dev=false
+    'env': 'dev',                          # ← Extracted from the name
+    'team': 'devops',                      # ← Fixed
+    'project': 'educhat',                  # ← Extracted from the name
+    'created_by': 'vincentRevole',         # ← User configuration
+    'backup-required': 'false'             # ← Logic: dev=false
 }
 defined_tags = {
-    ‘Oracle-Tags’: {
-        ‘CreatedBy’: ‘vincentRevole’,      # ← Timestamp
-        ‘CreatedOn’: ‘2026-03-18 14:32’
+    'Oracle-Tags': {
+        'CreatedBy': 'vincentRevole',      # ← Timestamp
+        'CreatedOn': '2026-03-18 14:32'
     }
 }
 ```
@@ -111,17 +111,17 @@ defined_tags = {
 ### Step 5: Create or Modify
 
 ```python
-if choice == “Y”:
+if choice == "Y":
     # CREATE
     
-elif choice == “n”:
+elif choice == "n":
     # MODIFY
-    field = input(“What to modify? (name/description)”)
-    if field == “name”:
-        new_name = input(“New name: ”)
+    field = input("What to modify? (name/description)")
+    if field == "name":
+        new_name = input("New name: ")
         # Regenerate tags with the new name
-    elif field == “description”:
-        new_description = input(“New description: ”)
+    elif field == "description":
+        new_description = input("New description: ")
     # Display the summary with the new values
     # Infinite loop → Y/n
 else:
@@ -150,15 +150,15 @@ response = identity_domains_client.list_users(
 
 # 4. Parse the users and their groups
 users_list = {
-    “vincentRevole”: {
-        “user_name”: “vincentRevole”,
-        “user_id”: “c00cae...”,
-        “user_ocid”: “ocid1.user.oc1...”,
-        “groups”: [
+    "vincentRevole": {
+        "user_name": "vincentRevole",
+        "user_id": "c00cae...",
+        "user_ocid": "ocid1.user.oc1...",
+        "groups": [
             {
-                “group_name”: “Grp-DevOps-Admin”,
-                “group_id”: “83038...f”,
-                “ocid”: “ocid1.group.oc1...”
+                "group_name": "Grp-DevOps-Admin",
+                "group_id": "83038...f",
+                "ocid": "ocid1.group.oc1..."
             }
         ]
     },
@@ -166,7 +166,7 @@ users_list = {
 }
 
 # 5. Selection Menu
-selected_user = inquire_display_dict(users_list, “Which user do you want?”)
+selected_user = inquire_display_dict(users_list, "Which user do you want?")
 ConfigState.target_user_credentials = users_list[selected_user]
 ```
 
@@ -176,18 +176,18 @@ ConfigState.target_user_credentials = users_list[selected_user]
 
 ```python
 # 1. Structure the list of groups
-groups_list = config_class.get_groups(“list”)
+groups_list = config_class.get_groups("list")
 
 structured_groups = {
-    “Grp-DevOps-Admin-xxx”: {
-        “group_ocid”: “ocid1.group.oc1...”,
-        “group_id”: “xxx”,
-        “group_name”: “Grp-DevOps-Admin-xxx”
+    "Grp-DevOps-Admin-xxx": {
+        "group_ocid": "ocid1.group.oc1...",
+        "group_id": "xxx",
+        "group_name": "Grp-DevOps-Admin-xxx"
     },
     ...
 }
 # 2. Selection Menu
-selected_group = inquire_display_dict(structured_groups, “Which group?”)
+selected_group = inquire_display_dict(structured_groups, "Which group?")
 ConfigState.target_group = structured_groups[selected_group]
 ```
 
@@ -197,23 +197,23 @@ ConfigState.target_group = structured_groups[selected_group]
 
 ```python
 # User input
-name = input(“Enter name (firstname-lastname): ”)   # “jean-dupont”
+name = input("Enter name (firstname-lastname): ")   # "jean-dupont"
 
 # Parse the selected group
-group_name = “Grp-DevOps-Admin”
-_, team, role, grp_id = group_name.split(“-”) # [“Grp”, “DevOps”, ‘Admin’, “xxx”]
+group_name = "Grp-DevOps-Admin"
+_, team, role, grp_id = group_name.split("-") # ["Grp", "DevOps", 'Admin', "xxx"]
 
 # Automatic construction
-user_name = f“U-{team}{role}-{name}”          # “U-DevOpsAdmin-jean-dupont”
-email = f“{name}@{team}{role}.ch”             # “jean-dupont@DevopsAdmin.ch”
-description = input(“Description: ”)
+user_name = f"U-{team}{role}-{name}"          # "U-DevOpsAdmin-jean-dupont"
+email = f"{name}@{team}{role}.ch"             # "jean-dupont@DevopsAdmin.ch"
+description = input("Description: ")
 
 return {
-    “name”: “jean-dupont”,
-    “user_name”: “U-DevOpsAdmin-jean-dupont”,
-    “email”: “jean-dupont@devopsadmin.ch”,
-    “group_name”: “Grp-DevOps-Admin”,
-    “group_ocid”: “ocid1.group.oc1.....”
+    "name": "jean-dupont",
+    "user_name": "U-DevOpsAdmin-jean-dupont",
+    "email": "jean-dupont@devopsadmin.ch",
+    "group_name": "Grp-DevOps-Admin",
+    "group_ocid": "ocid1.group.oc1....."
 }
 ```
 ### Étape 4 : Résumé & Validation
@@ -223,31 +223,31 @@ return {
 **Function:** `create_new_user()`
 
 ```python
-if user_validation == “Y”:
+if user_validation == "Y":
     identity_domains_client.create_user(
         user=User(
-            schemas=[“urn:ietf:params:scim:schemas:core:2.0:User”],
-            user_name=“U-DevOpsAdmin-jean-dupont”,
+            schemas=["urn:ietf:params:scim:schemas:core:2.0:User"],
+            user_name="U-DevOpsAdmin-jean-dupont",
             name={
-                “givenName”: “jean”,
-                “familyName”: “dupont”
+                "givenName": "jean",
+                "familyName": "dupont"
             },
             emails=[{
-                “value”: “jean-dupont@devopsadmin.ch”,
-                “type”: “work”,
-                “primary”: True
+                "value": "jean-dupont@devopsadmin.ch",
+                "type": "work",
+                "primary": True
             }],
             groups=[{
-                “value”: “ocid1.group.oc1...”,     # Group OCID
-                “name”: “Grp-DevOps-Admin”,
-                “type”: “direct”
+                "value": "ocid1.group.oc1...",     # Group OCID
+                "name": "Grp-DevOps-Admin",
+                "type": "direct"
             }],
             display_name="U-DevOpsAdmin-jean-dupont"
         )
     )
-    print(“✅ User created successfully!”)
+    print("✅ User created successfully!")
 else:
-    print(“❌ Exit program...”)
+    print("❌ Exit program...")
     sys.exit(0)
 ```
 
@@ -260,7 +260,7 @@ else:
 ```python
 # Same logic as Workflow 4A, Step 2
 structured_groups = get_groups_list(...)
-selected_group = inquire_display_dict(structured_groups, “Which group?”)
+selected_group = inquire_display_dict(structured_groups, "Which group?")
 ```
 
 ### Step 2: Constructing the Policy Statement
@@ -279,23 +279,23 @@ Allow <subject> to <verb> <resource-type> in <location> where <conditions>
 ### Practical Example
 
 ```python
-POLICY_SUBJECT = [“group”]
-POLICY_VERB = [“inspect”, “read”, ‘use’, “manage”]
+POLICY_SUBJECT = ["group"]
+POLICY_VERB = ["inspect", "read", 'use', "manage"]
 POLICY_RES_TYPE = [
-    “all-resources”,
-    “instance-family”,
-    “virtual-network-family”,
-    “database-family”,
+    "all-resources",
+    "instance-family",
+    "virtual-network-family",
+    "database-family",
     ...
 ]
-POLICY_LOCA = [“compartment id”, “tenancy id”]
+POLICY_LOCA = ["compartment id", "tenancy id"]
 
 # User selections:
-subject = “group”
-verb = “manage”
-resource_types = [“instance-family”, “virtual-network-family”]
-location = “compartment id”
-condition = “”
+subject = "group"
+verb = "manage"
+resource_types = ["instance-family", "virtual-network-family"]
+location = "compartment id"
+condition = ""
 
 # Built statement:
 "Allow group educhat/Grp-DevOps-Admin to manage 
@@ -306,9 +306,9 @@ condition = “”
 ### Step 3: Policy Settings
 
 ```python
-name = input(“Enter policy name: ”)     # “dev-perms”
-policy_name = f“P-{group_name}-{name}”  # “P-Grp-DevOps-Admin-dev-perms”
-description = input(“Description: ”)
+name = input("Enter policy name: ")     # "dev-perms"
+policy_name = f"P-{group_name}-{name}"  # "P-Grp-DevOps-Admin-dev-perms"
+description = input("Description: ")
 ```
 
 ### Step 4: Creation
@@ -318,7 +318,7 @@ identity_client.create_policy(
     create_policy_details=CreatePolicyDetails(
         compartment_id="ocid1.compartment.oc1...",
         name="P-Grp-DevOps-Admin-dev-perms",
-        statements=[“Allow group educhat/...”],
+        statements=["Allow group educhat/..."],
         description="Allows DevOps to manage compute resources",
         version_date="2026-03-18"
     )
@@ -334,7 +334,7 @@ identity_client.create_policy(
 ```python
 @dataclass
 class ConfigState:
-    “”“The global state of the application”“”
+    """The global state of the application"""
     
     # Authentication
     config_file_entries: Dict[str, Any]   # ~/.oci/config parsed
@@ -348,15 +348,15 @@ class ConfigState:
     
     # Access data (IAM resources)
     iam_user_resources_access: Dict[str, Any]  # {
-        “compartments”: {“data”: [...], ‘status’: “ok”},
-        “users”: {“data”: [...], ‘status’: “ok”},
-        “groups”: {“data”: [...], ‘status’: “ok”},
-        “policies”: {“data”: [...], ‘status’: “ok”}
+        "compartments": {"data": [...], 'status': "ok"},
+        "users": {"data": [...], 'status': "ok"},
+        "groups": {"data": [...], 'status': "ok"},
+        "policies": {"data": [...], 'status': "ok"}
     }
     
     # Helper methods
     def get_compartment(self) -> Dict:
-        return self.iam_user_resources_access[“compartment”][“data”]
+        return self.iam_user_resources_access["compartment"]["data"]
     
     def get_groups(self, type_data: str) -> Dict:
         ...
@@ -372,14 +372,14 @@ class ConfigState:
 ```python
 
 # OCI IAM constants
-POLICY_SUBJECT = [Choice(value=None, name="Exit"), “group”]
-POLICY_VERB = [“inspect”, “read”, ‘use’, “manage”]
-POLICY_LOCA = [“compartment id”, “tenancy id”]
+POLICY_SUBJECT = [Choice(value=None, name="Exit"), "group"]
+POLICY_VERB = ["inspect", "read", 'use', "manage"]
+POLICY_LOCA = ["compartment id", "tenancy id"]
 POLICY_RES_TYPE = [
-    “all-resources”,
-    “instance-family”,
-    “virtual-network-family”,
-    “database-family”,
+    "all-resources",
+    "instance-family",
+    "virtual-network-family",
+    "database-family",
     ...
 ]
 ```
@@ -388,7 +388,7 @@ POLICY_RES_TYPE = [
 
 ```python
 def inquire_display_dict(dictionary: dict, key_phrase: str):
-    “”“Displays a selection menu for a dictionary”“”
+    """Displays a selection menu for a dictionary"""
     choices = [EXIT_OPTION] + list(dictionary.keys())
     user_selection = inquirer.select(
         message=key_phrase,
@@ -398,10 +398,10 @@ def inquire_display_dict(dictionary: dict, key_phrase: str):
     return user_selection
 
 def user_validation_by_y_n(message: str) -> str:
-    “”“Y/n validation”“”
+    """Y/n validation"""
     return inquirer.text(
         message=message,
-        validate=lambda r: r in [“Y”, “n”]
+        validate=lambda r: r in ["Y", "n"]
     ).execute()
 ```
 
@@ -437,11 +437,11 @@ def get_compartment_list(
     
     # 2. For each child compartment
     for compartment in response.data:
-        display_label = f“{compartment.name} (parent: {parent_name})”
+        display_label = f"{compartment.name} (parent: {parent_name})"
         list_compartments[display_label] = {
-            “cmp_name”: compartment.name,
-            “cmp_parent”: parent_name,
-            “cmp_ocid”: compartment.id
+            "cmp_name": compartment.name,
+            "cmp_parent": parent_name,
+            "cmp_ocid": compartment.id
         }
         
         # 3. 🔄 RECURSION: explore children
@@ -458,11 +458,11 @@ def get_compartment_list(
 **Result:**
 ```python
 {
-    “dk_company (parent: Tenancy)”: {...},
-    “cmp_dev (parent: dk_company)”: {...},
-    “cmp_educhat_dev (parent: cmp_dev)”: {...},
-    “cmp_test_dev (parent: cmp_dev)”: {...},
-    “cmp_prod (parent: dk_company)”: {...},
+    "dk_company (parent: Tenancy)": {...},
+    "cmp_dev (parent: dk_company)": {...},
+    "cmp_educhat_dev (parent: cmp_dev)": {...},
+    "cmp_test_dev (parent: cmp_dev)": {...},
+    "cmp_prod (parent: dk_company)": {...},
     ...
 }
 ```

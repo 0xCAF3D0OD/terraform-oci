@@ -1,7 +1,7 @@
 ## Simple Summary
 
-- `pathex=[‘.’]`: Python needs to know where to look for your local 
-- `filesdatas=[(‘../.env’, ‘.’)]`: Include the .env file in the executable
+- `pathex=['.']`: Python needs to know where to look for your local 
+- `filesdatas=[('../.env', '.')]`: Include the .env file in the executable
 - `hiddenimports=[...]`: Explicitly list all modules that PyInstaller does not detect.
 
 ```rpmspec
